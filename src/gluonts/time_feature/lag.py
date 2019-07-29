@@ -51,6 +51,27 @@ def get_granularity(freq_str: str) -> Tuple[int, str]:
     return multiple, granularity
 
 
+# A dictionary mapping granularity to the period length of the longest season
+# one can expect in the given granularity.
+# This is similar to the...
+# This is useful for setting default values for past/context length for models
+# that do not do data augmentation and uses a single training example per time series in the dataset.
+FREQ_LONGEST_PERIOD_DICT = {
+    "M": 12,  # yearly seasonality
+    "W": 52,  # yearly seasonality
+    "D": 365,  # yearly seasonality
+    "B": 365,  # yearly seasonality
+    "H": 168,  # weekly seasonality
+    "T": 1440,  # daily seasonality
+    "min": 1440,  # daily seasonality
+}
+
+
+def longest_period_from_frequency_str(freq_str: str) -> int:
+    multiple, granularity = get_granularity(freq_str)
+    return FREQ_LONGEST_PERIOD_DICT[granularity] // multiple
+
+
 def time_features_from_frequency_str(freq_str: str) -> List[TimeFeature]:
     """
     Returns a list of time features that will be appropriate for the given frequency string.
