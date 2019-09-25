@@ -19,7 +19,7 @@ import mxnet as mx
 import numpy as np
 
 # First-party imports
-from gluonts.core.component import DType
+from gluonts.core.component import DType, get_mxnet_context
 from gluonts.model.common import Tensor
 
 
@@ -27,7 +27,7 @@ def batch_diagonal(
     F,
     matrix: Tensor,
     num_data_points: Optional[int] = None,
-    ctx=mx.cpu(),
+    ctx=get_mxnet_context(),
     float_type=np.float32,
 ) -> Tensor:
     """
@@ -42,6 +42,9 @@ def batch_diagonal(
         matrix of shape (batch_size, num_data_points, num_data_points).
     num_data_points
         Number of rows in the kernel_matrix.
+    ctx
+        Determines whether to compute on the cpu or gpu.
+    float_type
 
     Returns
     -------
@@ -90,7 +93,7 @@ def jitter_cholesky_eig(
     F,
     matrix: Tensor,
     num_data_points: Optional[int] = None,
-    ctx: mx.Context = mx.Context("cpu"),
+    ctx: mx.Context = get_mxnet_context(),
     float_type: DType = np.float64,
     diag_weight: float = 1e-6,
 ) -> Tensor:
@@ -112,6 +115,8 @@ def jitter_cholesky_eig(
         Determines whether to compute on the cpu or gpu.
     float_type
         Determines whether to use single or double precision.
+    diag_weight
+
 
     Returns
     -------
@@ -150,7 +155,7 @@ def jitter_cholesky(
     F,
     matrix: Tensor,
     num_data_points: Optional[int] = None,
-    ctx: mx.Context = mx.Context("cpu"),
+    ctx: mx.Context = get_mxnet_context(),
     float_type: DType = np.float64,
     max_iter_jitter: int = 10,
     neg_tol: float = -1e-8,

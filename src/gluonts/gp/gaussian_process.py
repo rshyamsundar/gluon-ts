@@ -19,7 +19,7 @@ import mxnet as mx
 import numpy as np
 
 # First-party imports
-from gluonts.core.component import DType
+from gluonts.core.component import DType, get_mxnet_context
 from gluonts.distribution import MultivariateGaussian
 from gluonts.distribution.distribution import getF
 from gluonts.kernels import Kernel
@@ -40,7 +40,7 @@ class GaussianProcess:
         prediction_length: Optional[int] = None,
         context_length: Optional[int] = None,
         num_samples: Optional[int] = None,
-        ctx: mx.Context = mx.Context("cpu"),
+        ctx: Optional[mx.Context] = None,
         float_type: DType = np.float64,
         jitter_method: str = "iter",
         max_iter_jitter: int = 10,
@@ -102,7 +102,7 @@ class GaussianProcess:
         )
         self.num_samples = num_samples
         self.F = F if F else getF(sigma)
-        self.ctx = ctx
+        self.ctx = ctx if ctx is not None else get_mxnet_context()
         self.float_type = float_type
         self.jitter_method = jitter_method
         self.max_iter_jitter = max_iter_jitter
