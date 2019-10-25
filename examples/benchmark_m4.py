@@ -38,14 +38,14 @@ datasets = [
     "m4_yearly",
 ]
 
-epochs = 100
+epochs = 25
 num_batches_per_epoch = 50
 
 estimators = [
     partial(
-        DeepAREstimator,
+        DeepStateEstimator,
         trainer=Trainer(
-            epochs=epochs, num_batches_per_epoch=num_batches_per_epoch
+            epochs=epochs, num_batches_per_epoch=num_batches_per_epoch, hybridize=False,
         ),
     ),
     # partial(
@@ -86,6 +86,12 @@ def evaluate(dataset_name, estimator):
             feat_static_cat.cardinality
             for feat_static_cat in dataset.metadata.feat_static_cat
         ],
+        trainer=Trainer(
+            epochs=epochs,
+            batch_size=32,
+            num_batches_per_epoch=int(dataset.metadata.feat_static_cat[0].cardinality) // 32,
+            hybridize=False,
+        ),
     )
 
     print(f"evaluating {estimator} on {dataset}")
