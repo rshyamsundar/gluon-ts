@@ -24,6 +24,7 @@ from gluonts.distribution.piecewise_linear import PiecewiseLinearOutput
 from gluonts.evaluation import Evaluator
 from gluonts.evaluation.backtest import make_evaluation_predictions
 from gluonts.model.deepar import DeepAREstimator
+from gluonts.model.deepstate import DeepStateEstimator
 from gluonts.model.seq2seq import MQCNNEstimator
 from gluonts.model.simple_feedforward import SimpleFeedForwardEstimator
 from gluonts.trainer import Trainer
@@ -42,30 +43,36 @@ num_batches_per_epoch = 50
 
 estimators = [
     partial(
-        SimpleFeedForwardEstimator,
-        trainer=Trainer(
-            epochs=epochs, num_batches_per_epoch=num_batches_per_epoch
-        ),
-    ),
-    partial(
         DeepAREstimator,
         trainer=Trainer(
             epochs=epochs, num_batches_per_epoch=num_batches_per_epoch
         ),
     ),
-    partial(
-        DeepAREstimator,
-        distr_output=PiecewiseLinearOutput(8),
-        trainer=Trainer(
-            epochs=epochs, num_batches_per_epoch=num_batches_per_epoch
-        ),
-    ),
-    partial(
-        MQCNNEstimator,
-        trainer=Trainer(
-            epochs=epochs, num_batches_per_epoch=num_batches_per_epoch
-        ),
-    ),
+    # partial(
+    #     SimpleFeedForwardEstimator,
+    #     trainer=Trainer(
+    #         epochs=epochs, num_batches_per_epoch=num_batches_per_epoch
+    #     ),
+    # ),
+    # partial(
+    #     DeepAREstimator,
+    #     trainer=Trainer(
+    #         epochs=epochs, num_batches_per_epoch=num_batches_per_epoch
+    #     ),
+    # ),
+    # partial(
+    #     DeepAREstimator,
+    #     distr_output=PiecewiseLinearOutput(8),
+    #     trainer=Trainer(
+    #         epochs=epochs, num_batches_per_epoch=num_batches_per_epoch
+    #     ),
+    # ),
+    # partial(
+    #     MQCNNEstimator,
+    #     trainer=Trainer(
+    #         epochs=epochs, num_batches_per_epoch=num_batches_per_epoch
+    #     ),
+    # ),
 ]
 
 
@@ -74,6 +81,11 @@ def evaluate(dataset_name, estimator):
     estimator = estimator(
         prediction_length=dataset.metadata.prediction_length,
         freq=dataset.metadata.freq,
+        use_feat_static_cat=True,
+        cardinality=[
+            feat_static_cat.cardinality
+            for feat_static_cat in dataset.metadata.feat_static_cat
+        ],
     )
 
     print(f"evaluating {estimator} on {dataset}")
