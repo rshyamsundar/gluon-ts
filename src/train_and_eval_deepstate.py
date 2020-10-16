@@ -10,10 +10,7 @@ from gluonts.dataset.common import load_datasets
 from gluonts.mx.distribution.lds import ParameterBounds
 from gluonts.model.deepstate import DeepStateEstimator
 from gluonts.evaluation import Evaluator
-from gluonts.evaluation.backtest import (
-    make_evaluation_predictions,
-    backtest_metrics,
-)
+from gluonts.evaluation.backtest import backtest_metrics
 from gluonts.evaluation.backtest import serialize_message
 
 import logging
@@ -45,8 +42,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--data-bucket", type=str, required=True)
     parser.add_argument("--data-prefix", type=str, required=True)
-    parser.add_argument("--num-test-dates", type=int, required=True)
-    parser.add_argument("--prediction-length", type=int, required=True)
     parser.add_argument(
         "--output-data-dir", type=str, default="/opt/ml/output/data/"
     )
@@ -92,7 +87,10 @@ if __name__ == "__main__":
         trainer=trainer,
         noise_std_bounds=ParameterBounds(1e-3, 1.0),
     )
-    agg_metrics, item_metrics = backtest_metrics(train_ds, test_ds, estimator,)
+    predictor = estimator.train(training_data=train_ds, num_workers=4)
+    agg_metrics, item_metrics = backtest_metrics(
+        test_ds, predictor, Evaluator(quantiles=(np.arange(20) / 20.0)[1:],),
+    )
 
     print("CRPS:", agg_metrics["mean_wQuantileLoss"])
     for name, value in agg_metrics.items():

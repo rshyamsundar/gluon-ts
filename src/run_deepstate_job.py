@@ -1,63 +1,44 @@
-"""
-This example shows how to run an arbitrary script in Sagemaker with Swist.
-The sibling entry_point script is defined in generic_script.py.
-If you want to just evaluate one model on a dataset, consider using gluonts_sagemaker/example_train.py directly
-as shown in example/example_train.py.
-"""
+from pathlib import Path
+import tempfile
 
-import isengard
-import sagemaker
-
-import gluonts
 from gluonts_sagemaker.estimator import GluonTSFramework
-import os
-import boto3
-from gluonts_sagemaker.train import get_metrics
 
-region = "us-west-2"
-account = "670864377759"
-role = "admin"
+from experiment_metadata import *
 
-client = isengard.Client()
-# profile_name = "mlf-bench"
-# todo pass the boto client to avoid defining an environment variable
-# os.environ["AWS_PROFILE"] = profile_name
 
-sess = client.get_boto3_session(account, role, region=region)
-sm = sess.client("sagemaker")
-sm_sess = sagemaker.Session(boto_session=sess)
+ROLLING = True
 
-role = "arn:aws:iam::670864377759:role/service-role/AmazonSageMaker-ExecutionRole-20181125T162939"
-region_name = "us-west-2"
 
-BUCKET = "mlf-bench-datasets"
-HYPERPARAMS = "good"
+requirements_dot_txt_file_name = "requirements.txt"
+requirements_dot_txt_file_content = (
+    "git+https://github.com/awslabs/gluon-ts.git"
+)
 
-DATASET = "neurips-datasets/unsplitted/non-rolling"
+# only using temporary directory for demonstration
+temp_dir = tempfile.TemporaryDirectory()
+temp_dir_path = Path(temp_dir.name)
 
-job_configs = [
-    {
-        "data-bucket": BUCKET,
-        "data-prefix": f"{DATASET}/exchange_rate_nips",
-        "num-test-dates": 1,
-        "hyperparams": HYPERPARAMS,
-        "dataset": "exchange-rate",
-        "estimator": "DeepAR",
-        "prediction-length": 150,
-    },
-]
+# create the requirements.txt file
+with open(
+    temp_dir_path / requirements_dot_txt_file_name, "w"
+) as req_file:  # has to be called requirements.txt
+    req_file.write(requirements_dot_txt_file_content)
+my_requirements_txt_file_path = str(
+    temp_dir_path / requirements_dot_txt_file_name
+)
+print(f"my_requirements_txt_file_path = '{my_requirements_txt_file_path}'")
 
-num_runs = 1
 
+rolling_str = "rolling" if ROLLING else "non-rolling"
 for _ in range(num_runs):
 
-    for config in job_configs:
-        base_job_name = f'deepstate-Richard-paper-{config["dataset"]}'
+    for config in get_job_configs(rolling=ROLLING):
+        base_job_name = f'{NameContains}-{rolling_str}-{config["dataset"]}'
         print(base_job_name)
         experiment = GluonTSFramework(
             entry_point="train_and_eval_deepstate.py",
-            source_dir="/Users/rangapur/gluon-ts/src/gluonts/",
-            dependencies=gluonts.__path__,
+            source_dir="/Users/rangapur/gluon-ts/src/",
+            dependencies=[my_requirements_txt_file_path],
             hyperparameters=config,
             sagemaker_session=sm_sess,
             role=role,
