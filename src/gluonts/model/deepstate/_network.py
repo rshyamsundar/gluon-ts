@@ -20,6 +20,7 @@ from gluonts.model.deepstate.issm import ISSM
 from gluonts.mx import Tensor
 from gluonts.mx.block.feature import FeatureEmbedder
 from gluonts.mx.block.scaler import MeanScaler, NOPScaler
+from gluonts.mx.distribution.bijection import Bijection
 from gluonts.mx.distribution.lds import LDS, LDSArgsProj, ParameterBounds
 from gluonts.mx.util import make_nd_diag, weighted_average
 
@@ -31,6 +32,7 @@ class DeepStateNetwork(mx.gluon.HybridBlock):
         num_layers: int,
         num_cells: int,
         cell_type: str,
+        output_transform: Optional[Bijection],
         past_length: int,
         prediction_length: int,
         issm: ISSM,
@@ -47,6 +49,7 @@ class DeepStateNetwork(mx.gluon.HybridBlock):
         self.num_layers = num_layers
         self.num_cells = num_cells
         self.cell_type = cell_type
+        self.output_transform = output_transform
         self.past_length = past_length
         self.prediction_length = prediction_length
         self.issm = issm
@@ -191,13 +194,26 @@ class DeepStateTrainingNetwork(DeepStateNetwork):
             axis=1, begin=-self.past_length, end=None
         )
 
-        ll, _, _ = lds.log_prob(
-            x=past_target.slice_axis(
-                axis=1, begin=-self.past_length, end=None
-            ),
+        past_target_context = past_target.slice_axis(
+            axis=1, begin=-self.past_length, end=None
+        )
+
+        if self.output_transform is not None:
+            past_target_context_transformed = self.output_transform.f_inv(
+                past_target_context
+            )
+            ladj = self.output_transform.log_abs_det_jac(
+                past_target_context, past_target_context_transformed
+            )
+
+        ll_lds, _, _ = lds.log_prob(
+            x=past_target_context_transformed
+            if self.output_transform is not None
+            else past_target_context,
             observed=observed_context.min(axis=-1, keepdims=False),
             scale=scale,
         )
+        ll = ll_lds - ladj if self.output_transform is not None else ll_lds
 
         return weighted_average(
             F=F, x=-ll, axis=1, weights=observed_context.squeeze(axis=-1)
@@ -262,6 +278,9 @@ class DeepStatePredictionNetwork(DeepStateNetwork):
         samples = lds_prediction.sample(
             num_samples=self.num_parallel_samples, scale=scale
         )
+
+        if self.output_transform is not None:
+            samples = self.output_transform.f(samples)
 
         # convert samples from
         # (num_samples, batch_size, prediction_length, target_dim)

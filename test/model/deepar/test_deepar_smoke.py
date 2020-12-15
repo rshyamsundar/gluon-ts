@@ -17,6 +17,11 @@ import numpy as np
 import pytest
 
 from gluonts.model.deepar import DeepAREstimator
+from gluonts.mx.distribution.iresnet import iresnet
+from gluonts.mx.distribution.transformed_distribution_output import (
+    TransformedDistributionOutput,
+)
+from gluonts.mx.distribution.gaussian import GaussianOutput
 from gluonts.mx.trainer import Trainer
 
 from gluonts.testutil.dummy_datasets import make_dummy_datasets_with_features
@@ -25,6 +30,10 @@ common_estimator_hps = dict(
     freq="D",
     prediction_length=3,
     trainer=Trainer(epochs=3, num_batches_per_epoch=2, batch_size=4),
+    # distr_output=TransformedDistributionOutput(
+    #     GaussianOutput(),
+    #     [iresnet(num_blocks=3, use_caching=True, num_hidden_layers=3, event_shape=(1,))],
+    # )
 )
 
 

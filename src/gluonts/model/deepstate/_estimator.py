@@ -22,6 +22,8 @@ from gluonts.dataset.field_names import FieldName
 from gluonts.model.deepstate.issm import ISSM, CompositeISSM
 from gluonts.mx.model.estimator import GluonEstimator
 from gluonts.model.predictor import Predictor
+from gluonts.mx.distribution.bijection import Bijection
+from gluonts.mx.distribution.iresnet import iresnet
 from gluonts.mx.distribution.lds import ParameterBounds
 from gluonts.mx.model.predictor import RepresentableBlockPredictor
 from gluonts.mx.trainer import Trainer
@@ -154,6 +156,12 @@ class DeepStateEstimator(GluonEstimator):
         prediction_length: int,
         cardinality: List[int],
         add_trend: bool = False,
+        output_transform: Optional[Bijection] = iresnet(
+            num_blocks=3,
+            use_caching=True,
+            num_hidden_layers=3,
+            event_shape=(1,),
+        ),
         past_length: Optional[int] = None,
         num_periods_to_train: int = 4,
         trainer: Trainer = Trainer(
@@ -210,6 +218,7 @@ class DeepStateEstimator(GluonEstimator):
         )
         self.prediction_length = prediction_length
         self.add_trend = add_trend
+        self.output_transform = output_transform
         self.num_layers = num_layers
         self.num_cells = num_cells
         self.cell_type = cell_type
@@ -321,6 +330,7 @@ class DeepStateEstimator(GluonEstimator):
             num_layers=self.num_layers,
             num_cells=self.num_cells,
             cell_type=self.cell_type,
+            output_transform=self.output_transform,
             past_length=self.past_length,
             prediction_length=self.prediction_length,
             issm=self.issm,
@@ -340,6 +350,7 @@ class DeepStateEstimator(GluonEstimator):
             num_layers=self.num_layers,
             num_cells=self.num_cells,
             cell_type=self.cell_type,
+            output_transform=self.output_transform,
             past_length=self.past_length,
             prediction_length=self.prediction_length,
             issm=self.issm,
